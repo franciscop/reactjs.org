@@ -18,28 +18,28 @@ The easiest way to avoid conflicts is to prevent the React component from updati
 
 To demonstrate this, let's sketch out a wrapper for a generic jQuery plugin.
 
-We will attach a [ref](/docs/refs-and-the-dom.html) to the root DOM element. Inside `componentDidMount`, we will get a reference to it so we can pass it to the jQuery plugin.
+We will attach a [ref](/docs/hooks-reference.html#useref) to the root DOM element. Inside `useEffect`, we will use this reference so we can pass it to the jQuery plugin.
 
-To prevent React from touching the DOM after mounting, we will return an empty `<div />` from the `render()` method. The `<div />` element has no properties or children, so React has no reason to update it, leaving the jQuery plugin free to manage that part of the DOM:
+To prevent React from touching the DOM after mounting, we will return an empty `<div />` and pass an empty dependency array to `useEffect`. The `<div />` element has no properties or children, so React has no reason to update it, leaving the jQuery plugin free to manage that part of the DOM. The empty dependency array will avoid resetting the plugin between re-renders:
+
 
 ```js{3,4,8,12}
-class SomePlugin extends React.Component {
-  componentDidMount() {
-    this.$el = $(this.el);
-    this.$el.somePlugin();
-  }
+import React, { useRef, useEffect } from 'react';
 
-  componentWillUnmount() {
-    this.$el.somePlugin('destroy');
-  }
+function SomePlugin () {
+  const ref = useRef();
 
-  render() {
-    return <div ref={el => this.el = el} />;
-  }
-}
+  useEffect(() => {
+    const $el = $(ref.current);
+    $el.somePlugin();
+    return () => $el.somePlugin('destroy');
+  }, []);
+
+  return <div ref={ref} />;
+};
 ```
 
-Note that we defined both `componentDidMount` and `componentWillUnmount` [lifecycle methods](/docs/react-component.html#the-component-lifecycle). Many jQuery plugins attach event listeners to the DOM so it's important to detach them in `componentWillUnmount`. If the plugin does not provide a method for cleanup, you will probably have to provide your own, remembering to remove any event listeners the plugin registered to prevent memory leaks.
+Note that we used both [`useEffect()` and its clean-up function](/docs/hooks-reference.html#useeffect). Many jQuery plugins attach event listeners to the DOM so it's important to detach them in the clean-up function from useEffect. If the plugin does not provide a method for cleanup, you will probably have to provide your own, remembering to remove any event listeners the plugin registered to prevent memory leaks.
 
 ### Integrating with jQuery Chosen Plugin {#integrating-with-jquery-chosen-plugin}
 
